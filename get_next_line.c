@@ -6,11 +6,13 @@
 /*   By: vkhomenk <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/01/22 13:56:44 by vkhomenk          #+#    #+#             */
-/*   Updated: 2019/02/03 20:51:23 by vkhomenk         ###   ########.fr       */
+/*   Updated: 2019/02/16 00:27:39 by vkhomenk         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
+
+#include <stdio.h>
 
 static t_list	*def_list(t_list **save, int fd)
 {
@@ -23,7 +25,7 @@ static t_list	*def_list(t_list **save, int fd)
 			return (tmp);
 		tmp = tmp->next;
 	}
-	if (!(tmp = ft_lstnew("", 1)))
+	if (!(tmp = ft_lstnew("\0", 1)))
 		return (NULL);
 	ft_lstadd(save, tmp);
 	tmp->content_size = fd;
@@ -32,17 +34,12 @@ static t_list	*def_list(t_list **save, int fd)
 
 static int		fill_line(t_list *lst, char **line)
 {
-	char	*c;
-	size_t	i;
+	char	*nl;
 
-	if (!ft_strchr(lst->content, '\n'))
+	if (!(nl = ft_strchr((char*)lst->content, '\n')))
 		return (0);
-	c = (char*)lst->content;
-	i = 0;
-	while (c[i] != '\n')
-		i++;
-	MOCHECK(!(*line = ft_strsub(lst->content, 0, i++)));
-	ft_memmove(lst->content, &c[i], ft_strlen(&c[i]) + 1);
+	MOCHECK(!(*line = ft_strsub(lst->content, 0, nl - (char*)lst->content)));
+	ft_memmove(lst->content, nl + 1, ft_strlen(nl));
 	return (1);
 }
 
@@ -56,9 +53,10 @@ int				get_next_line(const int fd, char **line)
 
 	MOCHECK(!line || fd < 0 || BUFF_SIZE < 1 || read(fd, buf, 0) ||
 	!(lst = def_list(&save, fd)));
+	cr = -2;
 	while (1)
 	{
-		if ((cr = fill_line(lst, line)))
+		if (cr < 0 && (cr = fill_line(lst, line)))
 			return (cr);
 		MOCHECK((cr = read(fd, buf, BUFF_SIZE)) < 0);
 		if (cr == 0 && (*(char*)lst->content))
@@ -66,6 +64,7 @@ int				get_next_line(const int fd, char **line)
 		else if (cr == 0)
 			return (0);
 		buf[cr] = 0;
+		ft_strchr(buf, '\n') ? cr = -2 : 0;
 		MOCHECK(!(str = ft_strjoin((char*)lst->content, buf)));
 		ft_memdel(&lst->content);
 		lst->content = str;
