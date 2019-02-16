@@ -6,7 +6,7 @@
 /*   By: vkhomenk <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/01/22 13:56:44 by vkhomenk          #+#    #+#             */
-/*   Updated: 2019/02/16 00:27:39 by vkhomenk         ###   ########.fr       */
+/*   Updated: 2019/02/16 04:20:30 by vkhomenk         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,7 +38,8 @@ static int		fill_line(t_list *lst, char **line)
 
 	if (!(nl = ft_strchr((char*)lst->content, '\n')))
 		return (0);
-	MOCHECK(!(*line = ft_strsub(lst->content, 0, nl - (char*)lst->content)));
+	if (!(*line = ft_strsub(lst->content, 0, nl - (char*)lst->content)))
+		return (-1);
 	ft_memmove(lst->content, nl + 1, ft_strlen(nl));
 	return (1);
 }
@@ -51,21 +52,21 @@ int				get_next_line(const int fd, char **line)
 	t_list			*lst;
 	int				cr;
 
-	MOCHECK(!line || fd < 0 || BUFF_SIZE < 1 || read(fd, buf, 0) ||
-	!(lst = def_list(&save, fd)));
+	IFRET(!line || fd < 0 || BUFF_SIZE < 1 || read(fd, buf, 0) ||
+	!(lst = def_list(&save, fd)), -1);
 	cr = -2;
 	while (1)
 	{
 		if (cr < 0 && (cr = fill_line(lst, line)))
 			return (cr);
-		MOCHECK((cr = read(fd, buf, BUFF_SIZE)) < 0);
+		IFRET((cr = read(fd, buf, BUFF_SIZE)) < 0, -1);
 		if (cr == 0 && (*(char*)lst->content))
 			buf[cr++] = '\n';
 		else if (cr == 0)
 			return (0);
 		buf[cr] = 0;
 		ft_strchr(buf, '\n') ? cr = -2 : 0;
-		MOCHECK(!(str = ft_strjoin((char*)lst->content, buf)));
+		IFRET(!(str = ft_strjoin((char*)lst->content, buf)), -1);
 		ft_memdel(&lst->content);
 		lst->content = str;
 	}
